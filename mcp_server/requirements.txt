@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+chromadb
+sentence-transformers
+numpy<2
+python-dotenv
