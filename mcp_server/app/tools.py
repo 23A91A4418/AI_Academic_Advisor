@@ -43,8 +43,9 @@ def memory_write(memory_type: str, data: dict):
 
         db.add(db_obj)
         db.commit()
+        db.refresh(db_obj)
 
-        return {"status": "success"}
+        return {"status": "success", "memory_id": str(db_obj.id)}
 
     elif memory_type == "milestone":
 
@@ -60,8 +61,9 @@ def memory_write(memory_type: str, data: dict):
 
         db.add(db_obj)
         db.commit()
+        db.refresh(db_obj)
 
-        return {"status": "success"}
+        return {"status": "success", "memory_id": str(db_obj.id)}
 
     else:
         return {"error": "Invalid memory type"}
@@ -104,16 +106,22 @@ def memory_retrieve_by_context(user_id: str, query_text: str, top_k: int = 3):
 
     documents = results["documents"][0]
     metadatas = results["metadatas"][0]
+    distances = results["distances"][0]
 
     output = []
 
-    for doc, meta in zip(documents, metadatas):
+    for doc, meta, dist in zip(documents, metadatas, distances):
 
         if meta.get("user_id") == user_id:
 
+            # For cosine space in ChromaDB, distance is 1 - similarity
+            # So score = 1 - distance = similarity
+            score = round(1 - dist, 4)
+
             output.append({
                 "content": doc,
-                "metadata": meta
+                "metadata": meta,
+                "score": score
             })
 
     return {"results": output}

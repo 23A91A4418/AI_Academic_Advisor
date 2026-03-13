@@ -7,7 +7,8 @@ CHROMA_DB_PATH = os.getenv("CHROMA_DB_PATH", "./chroma_db")
 client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
 
 collection = client.get_or_create_collection(
-    name="advisor_memory"
+    name="advisor_memory",
+    metadata={"hnsw:space": "cosine"}
 )
 
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")

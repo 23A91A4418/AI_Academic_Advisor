@@ -2,81 +2,86 @@ import requests
 
 MCP_URL = "http://mcp_server:8000"
 
-USER_ID = "student_001"
 
-
-def write_memory(turn_id, role, content):
-
-    payload = {
-        "memory_type": "conversation",
-        "data": {
-            "user_id": USER_ID,
-            "turn_id": turn_id,
-            "role": role,
-            "content": content
-        }
-    }
-
-    requests.post(f"{MCP_URL}/invoke/memory_write", json=payload)
-
-
-def search_memory(query):
-
-    payload = {
-        "user_id": USER_ID,
-        "query_text": query,
-        "top_k": 3
-    }
-
+def retrieve_memory(user_id, query):
     response = requests.post(
         f"{MCP_URL}/invoke/memory_retrieve_by_context",
-        json=payload
+        json={
+            "user_id": user_id,
+            "query_text": query,
+            "top_k": 1
+        }
     )
 
-    return response.json()
+    data = response.json()
+    results = data.get("results", [])
+
+    if results:
+        return results[0]["content"]
+
+    return None
 
 
-def advisor_response(user_input):
-
-    memory = search_memory(user_input)
-
-    retrieved_context = ""
-
-    if memory["results"]:
-        for item in memory["results"]:
-            retrieved_context += item["content"] + "\n"
-
-    response = f"""
-Relevant past information:
-{retrieved_context}
-
-Advisor Response:
-Based on your interests, here is my advice.
-"""
-
-    return response
+def store_memory(user_id, turn_id, role, content):
+    requests.post(
+        f"{MCP_URL}/invoke/memory_write",
+        json={
+            "memory_type": "conversation",
+            "data": {
+                "user_id": user_id,
+                "turn_id": turn_id,
+                "role": role,
+                "content": content
+            }
+        }
+    )
 
 
 def run_agent():
 
-    turn = 1
+    user_id = "student_01"
+    turn_id = 1
 
     while True:
 
         user_input = input("User: ")
 
-        if user_input.lower() == "exit":
+        if user_input.lower() in ["exit", "quit"]:
             break
 
-        write_memory(turn, "user", user_input)
+        # Retrieve memory
+        results = requests.post(
+            f"{MCP_URL}/invoke/memory_retrieve_by_context",
+            json={
+                "user_id": user_id,
+                "query_text": user_input,
+                "top_k": 3
+            }
+        ).json().get("results", [])
 
-        response = advisor_response(user_input)
+        # Filter out current message if it matches exactly
+        memory_content = None
+        for res in results:
+            if res["content"].lower() != user_input.lower():
+                memory_content = res["content"]
+                break
+
+        if memory_content:
+            print(f"\n[DEBUG] Found relevant memory: {memory_content}")
+            response = f"I remember you mentioned: \"{memory_content}\". Based on that, I recommend exploring specialized courses and projects in that area."
+        else:
+            response = "I'm here to help with your academic planning. What subjects or goals are you interested in?"
 
         print("Advisor:", response)
 
-        write_memory(turn + 1, "assistant", response)
+        # Store useful user messages
+        if "earlier" not in user_input.lower():
+            store_memory(user_id, turn_id, "user", user_input)
 
-        turn += 2
+        # Store assistant response
+        store_memory(user_id, turn_id, "assistant", response)
+
+        turn_id += 1
 
 
 if __name__ == "__main__":

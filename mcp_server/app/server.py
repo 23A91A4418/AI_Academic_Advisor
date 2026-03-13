@@ -23,7 +23,7 @@ def list_tools():
             {"name": "memory_retrieve_by_context", "description": "Semantic search"}
         ]
     }
-@app.post("/invoke/memory_write")
+@app.post("/invoke/memory_write", status_code=201)
 def invoke_memory_write(payload: dict):
 
     return memory_write(
