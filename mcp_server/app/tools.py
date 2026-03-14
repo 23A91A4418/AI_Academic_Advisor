@@ -27,7 +27,7 @@ def memory_write(memory_type: str, data: dict):
         add_memory_embedding(
             memory_id=str(db_obj.id),
             text=memory.content,
-            metadata={"user_id": memory.user_id, "type": "conversation"}
+            metadata={"user_id": memory.user_id, "type": "conversation", "role": memory.role}
         )
 
         return {"status": "success", "memory_id": db_obj.id}

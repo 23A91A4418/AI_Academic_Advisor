@@ -55,16 +55,24 @@ def run_agent():
             json={
                 "user_id": user_id,
                 "query_text": user_input,
-                "top_k": 3
+                "top_k": 5
             }
         ).json().get("results", [])
 
         # Filter out current message if it matches exactly
         memory_content = None
         for res in results:
-            if res["content"].lower() != user_input.lower():
-                memory_content = res["content"]
-                break
+            content = res.get("content", "")
+            role = res.get("metadata", {}).get("role")
+            
+            if content.lower() == user_input.lower():
+                continue
+                
+            if role == "assistant" or "I remember you mentioned:" in content:
+                continue
+                
+            memory_content = content
+            break
 
         if memory_content:
             print(f"\n[DEBUG] Found relevant memory: {memory_content}")
